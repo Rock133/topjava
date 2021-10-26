@@ -29,8 +29,6 @@ import static ru.javawebinar.topjava.UserTestData.USER_ID;
 @Sql(scripts = "classpath:db/populateDB.sql", config = @SqlConfig(encoding = "UTF-8"))
 public class MealServiceTest {
 
-    private final int OUT_OF_BOUNDS_INDEX = 10;
-
     static {
         // Only for postgres driver logging
         // It uses java.util.logging and logged via jul-to-slf4j bridge
@@ -40,34 +38,40 @@ public class MealServiceTest {
     @Autowired
     private MealService service;
 
+    @Test
     public void get() {
-        Meal meal = service.get(USER_MEALS.get(0).getId(), USER_ID);
-        assertMatch(meal, USER_MEALS.get(0));
+        Meal meal = service.get(FIRST_MEAL_ID, USER_ID);
+        assertMatch(meal, userMeal1);
     }
 
     @Test
     public void delete() {
-        service.delete(USER_FIRST_MEAL, USER_ID);
-        assertThrows(NotFoundException.class, () -> service.get(USER_FIRST_MEAL, USER_ID));
+        service.delete(FIRST_MEAL_ID, USER_ID);
+        assertThrows(NotFoundException.class, () -> service.get(FIRST_MEAL_ID, USER_ID));
     }
 
     @Test
     public void getBetweenInclusive() {
         assertMatch(service.getBetweenInclusive(LocalDate.of(2020, Month.JANUARY, 30),
                 LocalDate.of(2020, Month.JANUARY, 30), USER_ID),
-                USER_MEALS.get(USER_MEALS.size()-3), USER_MEALS.get(USER_MEALS.size()-2), USER_MEALS.get(USER_MEALS.size()-1));
+                userMeal3, userMeal2, userMeal1);
+    }
+
+    @Test
+    public void getBetweenNullDates() {
+        assertMatch(service.getBetweenInclusive(null, null, USER_ID), userMeals);
     }
 
     @Test
     public void getAll() {
-        assertMatch(service.getAll(USER_ID), USER_MEALS);
+        assertMatch(service.getAll(USER_ID), userMeals);
     }
 
     @Test
     public void update() {
         Meal updated = getUpdated();
         service.update(updated, USER_ID);
-        assertMatch(service.get(USER_FIRST_MEAL, USER_ID), getUpdated());
+        assertMatch(service.get(FIRST_MEAL_ID, USER_ID), getUpdated());
     }
 
     @Test
@@ -83,7 +87,7 @@ public class MealServiceTest {
     @Test
     public void duplicateDateTimeCreate() {
         assertThrows(DataAccessException.class, () ->
-                service.create(new Meal(null, USER_MEALS.get(0).getDateTime(), "Duplicate datetime create test meal", 1000), USER_ID));
+                service.create(new Meal(null, userMeal1.getDateTime(), "Duplicate datetime create test meal", 1000), USER_ID));
     }
 
     @Test
@@ -93,7 +97,7 @@ public class MealServiceTest {
 
     @Test
     public void deleteOtherUserMeal() {
-        assertThrows(NotFoundException.class, () -> service.delete(USER_FIRST_MEAL, ADMIN_ID));
+        assertThrows(NotFoundException.class, () -> service.delete(FIRST_MEAL_ID, ADMIN_ID));
     }
 
     @Test
@@ -103,12 +107,12 @@ public class MealServiceTest {
 
     @Test
     public void getOtherUserMeal() {
-        assertThrows(NotFoundException.class, () -> service.get(USER_FIRST_MEAL, ADMIN_ID));
+        assertThrows(NotFoundException.class, () -> service.get(FIRST_MEAL_ID, ADMIN_ID));
     }
 
     @Test
     public void updateOtherUserMeal() {
-        assertThrows(NotFoundException.class, () -> service.update(USER_MEALS.get(USER_MEALS.size()-1), ADMIN_ID));
-        assertMatch(service.get(USER_FIRST_MEAL, USER_ID), USER_MEALS.get(USER_MEALS.size()-1));
+        assertThrows(NotFoundException.class, () -> service.update(userMeal1, ADMIN_ID));
+        assertMatch(service.get(FIRST_MEAL_ID, USER_ID), userMeal1);
     }
 }
